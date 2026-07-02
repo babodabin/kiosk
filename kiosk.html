@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>카페 스몰데모 — 키오스크</title>
+<style>
+  :root{
+    --bg:#FAF7F2; --ink:#22201C; --sub:#8A7F70;
+    --espresso:#6B4A2F; --crema:#EDE0CC; --line:#E5DCCE;
+    --green:#2F5D50; --card:#FFFFFF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+    background:var(--bg);color:var(--ink);display:flex;flex-direction:column;overflow:hidden;}
+
+  /* ── 상단바 ── */
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px 10px;border-bottom:1px solid var(--line);}
+  header h1{font-size:17px;font-weight:800;letter-spacing:-0.4px;}
+  header h1 small{font-weight:500;color:var(--sub);font-size:11px;margin-left:6px;letter-spacing:0;}
+  #salesBtn{font-family:inherit;font-size:12.5px;font-weight:700;color:var(--green);
+    background:none;border:1.5px solid var(--green);border-radius:20px;padding:6px 13px;cursor:pointer;}
+
+  /* ── 본문: 카테고리 레일 + 메뉴 그리드 ── */
+  #main{flex:1;display:flex;overflow:hidden;}
+  #cats{width:86px;flex-shrink:0;border-right:1px solid var(--line);overflow-y:auto;padding:10px 0;}
+  .cat{padding:13px 8px;text-align:center;font-size:12.5px;font-weight:600;color:var(--sub);cursor:pointer;
+    border-left:3px solid transparent;}
+  .cat.on{color:var(--espresso);font-weight:800;border-left-color:var(--espresso);background:#fff;}
+  #grid{flex:1;overflow-y:auto;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;}
+
+  /* ── 메뉴 카드 ── */
+  .item{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 10px 12px;
+    text-align:center;cursor:pointer;transition:transform .08s;}
+  .item:active{transform:scale(0.97);}
+  .item .nm{font-size:13.5px;font-weight:700;margin-top:9px;letter-spacing:-0.3px;}
+  .item .pr{font-size:12px;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums;}
+
+  /* ── CSS 음료 컵 (시그니처) ── */
+  .cup{width:52px;height:64px;margin:0 auto;position:relative;}
+  .cup .glass{position:absolute;inset:0;border:2.5px solid #C9BBA6;border-top-width:1.5px;
+    border-radius:6px 6px 14px 14px;background:linear-gradient(to top,var(--liq,#8a5a34) var(--fill,72%),rgba(255,255,255,0.35) var(--fill,72%));overflow:hidden;}
+  .cup .glass::after{content:'';position:absolute;left:5px;top:4px;bottom:6px;width:5px;border-radius:4px;
+    background:rgba(255,255,255,0.4);}
+  .cup .ice i{position:absolute;width:11px;height:11px;background:rgba(255,255,255,0.75);
+    border-radius:3px;border:1px solid rgba(255,255,255,0.9);}
+  .cup .ice i:nth-child(1){left:8px;top:16px;transform:rotate(12deg);}
+  .cup .ice i:nth-child(2){right:9px;top:24px;transform:rotate(-18deg);}
+  .cup .ice i:nth-child(3){left:16px;top:33px;transform:rotate(30deg);}
+  .cup .steam{position:absolute;top:-13px;left:50%;transform:translateX(-50%);display:flex;gap:6px;}
+  .cup .steam s{width:2.5px;height:11px;background:#C9BBA6;border-radius:2px;opacity:0;
+    animation:steam 2.2s infinite ease-in-out;}
+  .cup .steam s:nth-child(2){animation-delay:0.5s;height:13px;}
+  .cup .steam s:nth-child(3){animation-delay:1s;}
+  @keyframes steam{0%{opacity:0;transform:translateY(3px) scaleY(0.7);}
+    40%{opacity:0.7;}100%{opacity:0;transform:translateY(-5px) scaleY(1.15);}}
+  .cup .mug-handle{position:absolute;right:-11px;top:16px;width:14px;height:22px;
+    border:2.5px solid #C9BBA6;border-left:none;border-radius:0 10px 10px 0;}
+
+  /* ── 옵션 바텀시트 ── */
+  #sheet{position:fixed;left:0;right:0;bottom:0;z-index:100;background:#fff;
+    border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,0.18);
+    transform:translateY(105%);transition:transform .3s cubic-bezier(.3,.8,.4,1);
+    max-height:86%;overflow-y:auto;padding:20px 20px calc(20px + env(safe-area-inset-bottom));}
+  #sheet.show{transform:translateY(0);}
+  #dim{position:fixed;inset:0;background:rgba(30,25,18,0.35);z-index:99;opacity:0;pointer-events:none;transition:opacity .3s;}
+  #dim.show{opacity:1;pointer-events:auto;}
+  #sheet h2{font-size:19px;font-weight:800;letter-spacing:-0.4px;}
+  #sheet .subP{font-size:13px;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums;}
+  .optT{font-size:11.5px;font-weight:800;color:var(--sub);letter-spacing:0.06em;margin:18px 0 8px;text-transform:uppercase;}
+  .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .opt{flex:1;min-width:calc(50% - 4px);text-align:center;padding:12px 6px;border:1.5px solid var(--line);
+    border-radius:12px;cursor:pointer;background:#fff;}
+  .opt .a{font-size:14px;font-weight:700;}
+  .opt .b{font-size:11px;color:var(--sub);margin-top:1px;}
+  .opt.on{border-color:var(--espresso);background:var(--crema);}
+  .opt.on .a{color:var(--espresso);}
+  /* 수량 */
+  #qtyRow{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:6px;}
+  #qtyRow button{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:#fff;
+    font-size:20px;font-weight:700;color:var(--espresso);cursor:pointer;}
+  #qty{font-size:20px;font-weight:800;min-width:30px;text-align:center;}
+  /* 이름 선택 */
+  .names{display:flex;gap:8px;flex-wrap:wrap;}
+  .names .opt{min-width:calc(33% - 6px);padding:10px 4px;}
+  /* 주문 버튼 */
+  #orderBtn{width:100%;margin-top:22px;padding:16px;border:none;border-radius:14px;
+    background:var(--espresso);color:#FFF6E9;font-family:inherit;font-size:16px;font-weight:800;
+    letter-spacing:-0.3px;cursor:pointer;}
+  #orderBtn:active{opacity:0.85;}
+
+  /* ── 주문 완료 토스트 ── */
+  #toast{position:fixed;top:18%;left:50%;transform:translate(-50%,-8px);z-index:200;
+    background:var(--green);color:#fff;font-size:14px;font-weight:700;padding:13px 22px;
+    border-radius:30px;opacity:0;pointer-events:none;transition:all .35s;box-shadow:0 6px 20px rgba(47,93,80,0.35);}
+  #toast.show{opacity:1;transform:translate(-50%,0);}
+
+  /* ── 매출 패널 ── */
+  #sales{position:fixed;inset:0;z-index:150;background:var(--bg);transform:translateX(100%);
+    transition:transform .3s;display:flex;flex-direction:column;}
+  #sales.show{transform:translateX(0);}
+  #sales header{background:var(--bg);}
+  #salesList{flex:1;overflow-y:auto;padding:14px 18px;}
+  .oRow{background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin-bottom:9px;
+    display:flex;justify-content:space-between;align-items:center;}
+  .oRow .l .n{font-size:14px;font-weight:700;}
+  .oRow .l .d{font-size:11.5px;color:var(--sub);margin-top:2px;}
+  .oRow .r{font-size:14px;font-weight:800;color:var(--espresso);font-variant-numeric:tabular-nums;}
+  #salesSum{padding:16px 18px calc(16px + env(safe-area-inset-bottom));border-top:1.5px solid var(--line);
+    display:flex;justify-content:space-between;font-size:16px;font-weight:800;}
+  #salesSum .v{color:var(--green);font-variant-numeric:tabular-nums;}
+  .empty{color:var(--sub);font-size:13.5px;text-align:center;margin-top:60px;line-height:1.7;}
+  #backBtn{font-family:inherit;font-size:13px;font-weight:700;color:var(--sub);background:none;
+    border:none;cursor:pointer;padding:6px 4px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>카페 스몰데모<small>KIOSK DEMO</small></h1>
+  <button id="salesBtn">주문 현황</button>
+</header>
+
+<div id="main">
+  <div id="cats"></div>
+  <div id="grid"></div>
+</div>
+
+<!-- 옵션 시트 -->
+<div id="dim"></div>
+<div id="sheet">
+  <h2 id="shName"></h2>
+  <div class="subP" id="shPrice"></div>
+
+  <div class="optT">온도</div>
+  <div class="opts" id="oTemp"></div>
+
+  <div class="optT">컵</div>
+  <div class="opts" id="oCup"></div>
+
+  <div class="optT" id="tIce">얼음</div>
+  <div class="opts" id="oIce"></div>
+
+  <div class="optT">샷 추가</div>
+  <div class="opts" id="oShot"></div>
+
+  <div class="optT">수량</div>
+  <div id="qtyRow">
+    <button id="qMinus">−</button><span id="qty">1</span><button id="qPlus">＋</button>
+  </div>
+
+  <div class="optT">주문자</div>
+  <div class="names opts" id="oName"></div>
+
+  <button id="orderBtn">주문하기</button>
+</div>
+
+<div id="toast"></div>
+
+<!-- 매출 패널 -->
+<div id="sales">
+  <header>
+    <h1>주문 현황</h1>
+    <button id="backBtn">← 메뉴로</button>
+  </header>
+  <div id="salesList"></div>
+  <div id="salesSum"><span>오늘 매출</span><span class="v" id="sumV">0원</span></div>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+
+// ── 메뉴 데이터 ──
+const MENU={
+  '에스프레소':[
+    {nm:'아메리카노',pr:3500,liq:'#7a4f2c',fill:74,ice:1},
+    {nm:'카페라떼',pr:4200,liq:'#c8a679',fill:78,ice:1},
+    {nm:'카푸치노',pr:4200,liq:'#d9bd97',fill:70,ice:0},
+    {nm:'바닐라라떼',pr:4700,liq:'#d3b184',fill:78,ice:1},
+  ],
+  '콜드브루':[
+    {nm:'콜드브루',pr:4500,liq:'#5d3a20',fill:72,ice:1},
+    {nm:'콜드브루 라떼',pr:5000,liq:'#b98f63',fill:78,ice:1},
+  ],
+  '티':[
+    {nm:'유자민트티',pr:4800,liq:'#e8c766',fill:70,ice:1},
+    {nm:'캐모마일',pr:4300,liq:'#e3cf8e',fill:70,ice:0},
+    {nm:'히비스커스',pr:4500,liq:'#b8374f',fill:70,ice:1},
+    {nm:'생강차',pr:4500,liq:'#d9a75a',fill:70,ice:0},
+  ],
+  '에이드':[
+    {nm:'레몬에이드',pr:5000,liq:'#f2dd7d',fill:76,ice:1},
+    {nm:'자몽에이드',pr:5200,liq:'#f0967a',fill:76,ice:1},
+  ],
+};
+const NAMES=['형','민지','서준','팀장님','손님1','손님2'];
+let curCat=Object.keys(MENU)[0];
+let sel=null;                       // 현재 선택 메뉴
+let opt={temp:'ICE',cup:'매장컵',ice:'보통',shot:'없음',qty:1,name:NAMES[0]};
+const orders=[];                    // 주문 내역 (메모리)
+
+// ── 카테고리 렌더 ──
+function renderCats(){
+  const c=$('#cats'); c.innerHTML='';
+  Object.keys(MENU).forEach(k=>{
+    const d=document.createElement('div');
+    d.className='cat'+(k===curCat?' on':'');
+    d.textContent=k;
+    d.onclick=()=>{curCat=k;renderCats();renderGrid();};
+    c.appendChild(d);
+  });
+}
+
+// ── 메뉴 그리드 렌더 (CSS 컵 포함) ──
+function renderGrid(){
+  const g=$('#grid'); g.innerHTML='';
+  MENU[curCat].forEach(m=>{
+    const d=document.createElement('div');
+    d.className='item';
+    d.innerHTML=
+      '<div class="cup" style="--liq:'+m.liq+';--fill:'+m.fill+'%">'
+      +(m.ice? '<div class="glass"><div class="ice"><i></i><i></i><i></i></div></div>'
+             : '<div class="glass" style="border-radius:6px 6px 8px 8px"></div><div class="mug-handle"></div><div class="steam"><s></s><s></s><s></s></div>')
+      +'</div>'
+      +'<div class="nm">'+m.nm+'</div>'
+      +'<div class="pr">'+m.pr.toLocaleString()+'원</div>';
+    d.onclick=()=>openSheet(m);
+    g.appendChild(d);
+  });
+}
+
+// ── 옵션 시트 ──
+function chip(v,sub){return {v,sub};}
+const OPTS={
+  temp:[chip('ICE','아이스'),chip('HOT','따뜻하게')],
+  cup:[chip('매장컵',''),chip('텀블러','-300원'),chip('일회용','')],
+  ice:[chip('적게',''),chip('보통',''),chip('많이','')],
+  shot:[chip('없음',''),chip('+1샷','+500원'),chip('+1샷 디카페인','+500원')],
+};
+function renderOpts(id,key){
+  const box=$(id); box.innerHTML='';
+  OPTS[key].forEach(o=>{
+    const d=document.createElement('div');
+    d.className='opt'+(opt[key]===o.v?' on':'');
+    d.innerHTML='<div class="a">'+o.v+'</div>'+(o.sub?'<div class="b">'+o.sub+'</div>':'');
+    d.onclick=()=>{opt[key]=o.v;renderOpts(id,key);syncIce();updatePrice();};
+    box.appendChild(d);
+  });
+}
+function renderNames(){
+  const box=$('#oName'); box.innerHTML='';
+  NAMES.forEach(n=>{
+    const d=document.createElement('div');
+    d.className='opt'+(opt.name===n?' on':'');
+    d.innerHTML='<div class="a">'+n+'</div>';
+    d.onclick=()=>{opt.name=n;renderNames();};
+    box.appendChild(d);
+  });
+}
+function syncIce(){
+  // HOT이면 얼음 옵션 숨김
+  const off=opt.temp==='HOT';
+  $('#tIce').style.display=off?'none':'';
+  $('#oIce').style.display=off?'none':'';
+}
+function calcPrice(){
+  let p=sel.pr;
+  if(opt.cup==='텀블러') p-=300;
+  if(opt.shot!=='없음') p+=500;
+  return p*opt.qty;
+}
+function updatePrice(){
+  $('#shPrice').textContent=calcPrice().toLocaleString()+'원';
+  $('#orderBtn').textContent=calcPrice().toLocaleString()+'원 주문하기';
+}
+function openSheet(m){
+  sel=m;
+  opt={temp:m.ice?'ICE':'HOT',cup:'매장컵',ice:'보통',shot:'없음',qty:1,name:opt.name};
+  $('#shName').textContent=m.nm;
+  $('#qty').textContent='1';
+  renderOpts('#oTemp','temp'); renderOpts('#oCup','cup');
+  renderOpts('#oIce','ice'); renderOpts('#oShot','shot');
+  renderNames(); syncIce(); updatePrice();
+  $('#sheet').classList.add('show'); $('#dim').classList.add('show');
+}
+function closeSheet(){
+  $('#sheet').classList.remove('show'); $('#dim').classList.remove('show');
+}
+$('#dim').onclick=closeSheet;
+$('#qPlus').onclick=()=>{opt.qty=Math.min(9,opt.qty+1);$('#qty').textContent=opt.qty;updatePrice();};
+$('#qMinus').onclick=()=>{opt.qty=Math.max(1,opt.qty-1);$('#qty').textContent=opt.qty;updatePrice();};
+
+// ── 주문 ──
+$('#orderBtn').onclick=()=>{
+  const total=calcPrice();
+  orders.unshift({
+    nm:sel.nm, name:opt.name, total,
+    detail:opt.temp+(opt.temp==='ICE'?' · 얼음 '+opt.ice:'')+' · '+opt.cup
+      +(opt.shot!=='없음'?' · '+opt.shot:'')+' · '+opt.qty+'잔',
+    time:new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+  });
+  closeSheet();
+  const t=$('#toast');
+  t.textContent=opt.name+'님, '+sel.nm+' 주문 완료 ☕';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+};
+
+// ── 매출 패널 ──
+$('#salesBtn').onclick=()=>{renderSales();$('#sales').classList.add('show');};
+$('#backBtn').onclick=()=>$('#sales').classList.remove('show');
+function renderSales(){
+  const L=$('#salesList'); L.innerHTML='';
+  if(!orders.length){
+    L.innerHTML='<div class="empty">아직 주문이 없어요.<br>메뉴에서 첫 주문을 넣어보세요.</div>';
+  }
+  orders.forEach(o=>{
+    const d=document.createElement('div');
+    d.className='oRow';
+    d.innerHTML='<div class="l"><div class="n">'+o.nm+' — '+o.name+'</div>'
+      +'<div class="d">'+o.detail+' · '+o.time+'</div></div>'
+      +'<div class="r">'+o.total.toLocaleString()+'원</div>';
+    L.appendChild(d);
+  });
+  const sum=orders.reduce((a,o)=>a+o.total,0);
+  $('#sumV').textContent=sum.toLocaleString()+'원';
+}
+
+renderCats(); renderGrid();
+})();
+</script>
+</body>
+</html>
