@@ -61,12 +61,12 @@
   #shPrice{font-size:15px;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums;}
   .optT{font-family:var(--disp);font-size:14px;color:var(--point);margin:20px 0 9px;}
   .opts{display:flex;gap:8px;flex-wrap:wrap;}
-  .opt{flex:1;min-width:calc(33.3% - 6px);text-align:center;padding:13px 6px;border:1.5px solid var(--line);
-    border-radius:13px;cursor:pointer;background:#fff;}
+  .opt{flex:0 0 calc(50% - 4px);text-align:center;padding:14px 6px;border:1.5px solid var(--line);
+    border-radius:13px;cursor:pointer;background:#fff;box-sizing:border-box;}
   .opt .a{font-size:15px;font-weight:400;font-family:var(--disp);color:var(--ink);}
   .opt .b{font-size:11.5px;color:var(--sub);margin-top:2px;}
   .opt.on{border-color:var(--ink);border-width:2px;background:#FFFFFF;}
-  .opt.half{min-width:calc(50% - 4px);}
+  .opt.half{}
   #qtyRow{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:4px;}
   #qtyRow button{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line);background:#fff;
     font-size:22px;font-family:var(--disp);color:var(--point);cursor:pointer;}
@@ -98,8 +98,10 @@
     font-size:13px;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;}
 
   /* 뒤로가기 */
-  .shHead{margin:-6px 0 8px;}
-  #shBack{font-family:var(--disp);font-size:15px;color:var(--sub);background:none;border:none;cursor:pointer;padding:4px 0;}
+  .shHead{margin:-6px 0 12px;}
+  #shBack{font-family:var(--disp);font-size:16px;color:var(--point);background:#F2F0EC;
+    border:none;border-radius:12px;cursor:pointer;padding:11px 18px;display:inline-flex;align-items:center;gap:4px;}
+  #shBack:active{background:#E5E1DA;}
   /* 하단 장바구니 바 */
   #cartBar{position:fixed;left:0;right:0;bottom:0;z-index:80;background:var(--point);
     display:none;align-items:center;justify-content:space-between;
@@ -178,7 +180,7 @@
   <div id="cartFoot">
     <div class="cartSum"><span>합계</span><span class="v" id="cartSumV">0원</span></div>
     <div class="cartBtns">
-      <button id="splitBtn">나눠서 주문</button>
+      <button id="splitBtn">더치페이</button>
       <button id="payBtn">한번에 주문</button>
     </div>
   </div>
@@ -215,7 +217,7 @@ const MENU={
   '라떼·에이드':[
     {nm:'초코라떼',pr:4800,img:'choco',type:'latte',ice:0},
     {nm:'그린티라떼',pr:4800,img:'greenlatte',type:'latte',ice:0},
-    {nm:'레몬티',pr:5000,img:'lemontea',type:'ade',ice:1},
+    {nm:'레몬에이드',pr:5000,img:'lemontea',type:'ade',ice:1},
   ],
   '티':[
     {nm:'그린티',pr:4000,img:'greentea',type:'tea',ice:0},
@@ -293,18 +295,20 @@ function openSheet(m){
   sel=m;
   const isCake=(m.type==='cake');
   const isDrink=!isCake;
+  const isAde=(m.type==='ade');
   const milkable=(m.type==='latte');
   const shotable=(m.type==='coffee'||m.type==='latte');
-  opt={temp:m.ice?'ICE':'HOT', size:'레귤러', milk:'일반우유',
+  opt={temp:'ICE', size:'레귤러', milk:'일반우유',
        shot:'없음', syrup:'없음', cup:'매장컵', pack:'매장', qty:1};
   $('#shName').textContent=m.nm;
   $('#qty').textContent='1';
   const img=$('#shImg');
   if(m.img&&IMG[m.img]){img.src=IMG[m.img];img.style.display='';}else{img.style.display='none';}
-  show('#gTemp',isDrink); show('#gSize',isDrink);
+  show('#gTemp',isDrink&&!isAde); show('#gSize',isDrink);   // 에이드는 온도 선택 없음(ICE 고정)
   show('#gMilk',milkable); show('#gShot',shotable);
   show('#gSyrup',isDrink); show('#gCup',isDrink); show('#gPack',isCake);
-  if(isDrink){renderOpts('#oTemp','temp');renderOpts('#oSize','size');renderOpts('#oSyrup','syrup');renderOpts('#oCup','cup');}
+  if(isDrink){renderOpts('#oSize','size');renderOpts('#oSyrup','syrup');renderOpts('#oCup','cup');}
+  if(isDrink&&!isAde)renderOpts('#oTemp','temp');
   if(milkable)renderOpts('#oMilk','milk');
   if(shotable)renderOpts('#oShot','shot');
   if(isCake)renderOpts('#oPack','pack');
@@ -363,20 +367,22 @@ function renderCart(){
 const orders=[]; let orderNo=0;
 function placeOrders(split){
   if(!cart.length) return;
-  let msg;
+  const sum=cart.reduce((a,c)=>a+c.total,0);
+  const nm=cart.map(c=>c.nm).join(', ');
+  let msg, detail;
   if(split){
-    // 나눠서: 각 잔마다 개별 번호
-    cart.forEach(c=>{ orderNo++; orders.unshift({no:orderNo, nm:c.nm, total:c.total, detail:c.detail,
-      time:nowT()}); });
-    msg=cart.length+'건 개별 주문 완료!';
+    // 더치페이: 인원수로 금액 나누기
+    const n=parseInt(prompt('몇 명이 나눠서 낼까요?','2'),10);
+    if(!n||n<1) return;
+    const per=Math.ceil(sum/n/10)*10;   // 10원 단위 올림
+    detail=cart.length+'잔 · '+n+'명 더치페이 (1인 '+per.toLocaleString()+'원)';
+    msg=n+'명이 각 '+per.toLocaleString()+'원씩!';
   } else {
-    // 한번에: 묶음 하나로 번호 1개
-    orderNo++;
-    const sum=cart.reduce((a,c)=>a+c.total,0);
-    const nm=cart.map(c=>c.nm).join(', ');
-    orders.unshift({no:orderNo, nm:nm, total:sum, detail:cart.length+'잔 묶음', time:nowT()});
-    msg='번호 '+orderNo+'번 주문 완료!';
+    detail=cart.length+'잔 묶음';
+    msg='번호 '+(orderNo+1)+'번 주문 완료!';
   }
+  orderNo++;
+  orders.unshift({no:orderNo, nm:nm, total:sum, detail:detail, time:nowT()});
   cart.length=0; updateCartBar();
   $('#cart').classList.remove('show');
   const t=$('#toast'); t.textContent=msg+' ☕';
@@ -387,7 +393,11 @@ $('#payBtn').onclick=()=>placeOrders(false);
 $('#splitBtn').onclick=()=>placeOrders(true);
 
 // ── 주문 현황 ──
-$('#salesBtn').onclick=()=>{renderSales();$('#sales').classList.add('show');};
+$('#salesBtn').onclick=()=>{
+  const pw=prompt('관리자 비밀번호를 입력하세요');
+  if(pw!=='1234'){ if(pw!==null) alert('비밀번호가 틀렸습니다'); return; }
+  renderSales();$('#sales').classList.add('show');
+};
 $('#backBtn').onclick=()=>$('#sales').classList.remove('show');
 function renderSales(){
   const L=$('#salesList'); L.innerHTML='';
