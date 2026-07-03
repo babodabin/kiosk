@@ -42,6 +42,18 @@
   .item .photo{width:100%;aspect-ratio:1/1;overflow:hidden;background:#FFFFFF;}
   .item .photo img{width:100%;height:100%;object-fit:cover;display:block;}
   .item .info{padding:11px 12px 13px;}
+  /* 품절 */
+  .item.sold{position:relative;}
+  .item.sold .photo{filter:grayscale(0.7) brightness(0.75);}
+  .item.sold::after{content:'품절';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);
+    font-family:var(--disp);font-size:22px;color:#fff;background:rgba(192,57,43,0.92);
+    padding:6px 18px;border-radius:8px;letter-spacing:1px;}
+  .item.sold .info{opacity:0.45;}
+  /* 관리자 모드 배너 */
+  #adminBar{display:none;background:#2E2A26;color:#fff;font-family:var(--disp);font-size:14px;
+    text-align:center;padding:10px;}
+  #adminBar.show{display:block;}
+  body.admin .item{outline:2px dashed #C0392B;outline-offset:-2px;}
   .item .nm{font-family:var(--disp);font-size:16px;color:var(--ink);letter-spacing:-0.3px;}
   .item .pr{font-family:var(--disp);font-size:15px;color:var(--point);margin-top:4px;font-variant-numeric:tabular-nums;}
   .item .photo.noimg{display:flex;align-items:center;justify-content:center;
@@ -161,6 +173,7 @@
   <h1>카페 키오스크<small>ORDER KIOSK</small></h1>
   <button id="salesBtn">메뉴</button>
 </header>
+<div id="adminBar">🔧 관리자 모드 · 음료를 눌러 품절/판매중을 바꾸세요 · "메뉴"를 누르면 종료</div>
 
 <div id="main">
   <div id="cats"></div>
@@ -305,17 +318,22 @@ function renderCats(){
     c.appendChild(d);
   });
 }
+let adminMode=false;
 function renderGrid(){
   const g=$('#grid'); g.innerHTML='';
   MENU[curCat].forEach(m=>{
-    const d=document.createElement('div'); d.className='item';
+    const d=document.createElement('div'); d.className='item'+(m.sold?' sold':'');
     const hasImg=m.img&&IMG[m.img];
     d.innerHTML=
       (hasImg?'<div class="photo"><img src="'+IMG[m.img]+'" alt="'+m.nm+'"></div>'
              :'<div class="photo noimg">'+m.nm+'</div>')
       +'<div class="info"><div class="nm">'+m.nm+'</div>'
       +'<div class="pr">'+m.pr.toLocaleString()+'원</div></div>';
-    d.onclick=()=>openSheet(m);
+    d.onclick=()=>{
+      if(adminMode){ m.sold=!m.sold; renderGrid(); return; }  // 관리자: 품절 토글
+      if(m.sold) return;                                       // 손님: 품절이면 무시
+      openSheet(m);
+    };
     g.appendChild(d);
   });
 }
@@ -465,8 +483,26 @@ document.querySelectorAll('.payOpt').forEach(b=>b.onclick=()=>{
   }
 })();
 
-// ── 주문 현황 ──
-$('#salesBtn').onclick=()=>{
+// ── 메뉴 버튼: 짧게=주문현황(비번), 길게=품절 관리자 모드 ──
+const salesBtn=$('#salesBtn');
+let pressTimer=null, longPressed=false;
+function enterAdmin(){
+  const pw=prompt('관리자 비밀번호를 입력하세요');
+  if(pw!=='1234'){ if(pw!==null) alert('비밀번호가 틀렸습니다'); return; }
+  adminMode=true; document.body.classList.add('admin');
+  $('#adminBar').classList.add('show'); renderGrid();
+}
+function exitAdmin(){
+  adminMode=false; document.body.classList.remove('admin');
+  $('#adminBar').classList.remove('show'); renderGrid();
+}
+salesBtn.addEventListener('touchstart',()=>{ longPressed=false; pressTimer=setTimeout(()=>{longPressed=true; enterAdmin();},600); });
+salesBtn.addEventListener('touchend',()=>{ clearTimeout(pressTimer); });
+salesBtn.addEventListener('mousedown',()=>{ longPressed=false; pressTimer=setTimeout(()=>{longPressed=true; enterAdmin();},600); });
+salesBtn.addEventListener('mouseup',()=>{ clearTimeout(pressTimer); });
+salesBtn.onclick=()=>{
+  if(longPressed){ longPressed=false; return; }   // 길게 눌러 관리자 진입한 경우 클릭 무시
+  if(adminMode){ exitAdmin(); return; }           // 관리자 모드면 종료
   const pw=prompt('관리자 비밀번호를 입력하세요');
   if(pw!=='1234'){ if(pw!==null) alert('비밀번호가 틀렸습니다'); return; }
   renderSales();$('#sales').classList.add('show');
