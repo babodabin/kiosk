@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>카페 키오스크</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
 <style>
@@ -282,7 +286,7 @@ function calcPrice(){
 }
 function updatePrice(){
   $('#shPrice').textContent=calcPrice().toLocaleString()+'원';
-  $('#orderBtn').textContent=calcPrice().toLocaleString()+'원 주문하기';
+  $('#addBtn').textContent=calcPrice().toLocaleString()+'원 담기';
 }
 function show(id,on){$(id).style.display=on?'':'none';}
 function openSheet(m){
@@ -401,6 +405,11 @@ function renderSales(){
 
 renderCats(); renderGrid(); updateCartBar();
 })();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>
