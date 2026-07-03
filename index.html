@@ -48,8 +48,9 @@
   #sheet{position:fixed;left:0;right:0;bottom:0;z-index:100;background:#fff;
     border-radius:24px 24px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,0.18);
     transform:translateY(105%);transition:transform .3s cubic-bezier(.3,.8,.4,1);
-    max-height:88%;overflow-y:auto;padding:22px 22px calc(22px + env(safe-area-inset-bottom));}
-  #sheet.show{transform:translateY(0);}
+    max-height:88%;overflow-y:auto;padding:22px 22px calc(22px + env(safe-area-inset-bottom));
+    visibility:hidden;}
+  #sheet.show{transform:translateY(0);visibility:visible;}
   .shTop{display:flex;gap:14px;align-items:center;margin-bottom:6px;}
   .shTop img{width:70px;height:70px;border-radius:14px;object-fit:cover;flex-shrink:0;}
   #shName{font-family:var(--disp);font-size:22px;letter-spacing:-0.5px;}
@@ -76,8 +77,8 @@
   #toast.show{opacity:1;transform:translate(-50%,0);}
 
   #sales{position:fixed;inset:0;z-index:150;background:var(--bg);transform:translateX(100%);
-    transition:transform .3s;display:flex;flex-direction:column;}
-  #sales.show{transform:translateX(0);}
+    transition:transform .3s;display:flex;flex-direction:column;visibility:hidden;}
+  #sales.show{transform:translateX(0);visibility:visible;}
   #salesList{flex:1;overflow-y:auto;padding:16px 20px;}
   .oRow{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;
     display:flex;justify-content:space-between;align-items:center;}
@@ -104,8 +105,8 @@
   #cbGo{font-family:var(--disp);font-size:15px;color:var(--point);background:#fff;border:none;border-radius:22px;padding:9px 18px;cursor:pointer;}
   /* 장바구니 화면 */
   #cart{position:fixed;inset:0;z-index:160;background:var(--bg);transform:translateX(100%);
-    transition:transform .3s;display:flex;flex-direction:column;}
-  #cart.show{transform:translateX(0);}
+    transition:transform .3s;display:flex;flex-direction:column;visibility:hidden;}
+  #cart.show{transform:translateX(0);visibility:visible;}
   #cartList{flex:1;overflow-y:auto;padding:16px 20px;}
   #cartClose{font-family:var(--disp);font-size:14px;color:var(--sub);background:none;border:none;cursor:pointer;padding:6px 4px;}
   .cItem{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
