@@ -1,5 +1,5 @@
 // 카페 키오스크 — 오프라인 캐시
-const CACHE = 'kiosk-v2';
+const CACHE = 'kiosk-v3';
 const ASSETS = ['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
